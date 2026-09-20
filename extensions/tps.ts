@@ -125,6 +125,8 @@ export default function (pi: ExtensionAPI): void {
 	let pausedDurationAtStartMs = 0;
 	let pauseWasEnabledAtStart = false;
 	let refreshTimer: ReturnType<ExtensionContext["setInterval"]> | undefined;
+	/** Context that owns `refreshTimer`; `clearTimer` is scoped to its runner. */
+	let timerCtx: ExtensionContext | null = null;
 	let statusCtx: ExtensionContext | null = null;
 	let input = 0;
 	let output = 0;
@@ -134,8 +136,9 @@ export default function (pi: ExtensionAPI): void {
 
 	function clearRefreshTimer(): void {
 		if (refreshTimer === undefined) return;
-		statusCtx?.clearTimer(refreshTimer);
+		timerCtx?.clearTimer(refreshTimer);
 		refreshTimer = undefined;
+		timerCtx = null;
 	}
 
 	function getElapsedMs(now = Date.now()): number {
@@ -192,6 +195,7 @@ export default function (pi: ExtensionAPI): void {
 		// session shutdown — a raw interval here could pin the event loop or take
 		// the process down from a render error.
 		refreshTimer = ctx.setInterval(() => refreshStatus(), REFRESH_INTERVAL_MS);
+		timerCtx = ctx;
 	});
 
 	pi.on("agent_end", (event, ctx) => {
