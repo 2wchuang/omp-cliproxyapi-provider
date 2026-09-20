@@ -24,9 +24,10 @@ tier, request pausing, catalog refresh, and an elapsed/TPS footer.
 omp plugin install omp-cliproxyapi-provider
 ```
 
-Or drop the package under `~/.omp/agent/plugins/node_modules/` (or point `extensions:`
-in `~/.omp/config.yml` at this directory) — `package.json`'s `omp.extensions`
-field is the install contract.
+Or unpack the package into `~/.omp/plugins/node_modules/omp-cliproxyapi-provider/` (the
+directory `omp plugin install` targets — note this is `~/.omp/plugins`, not under
+`agent/`). Pointing `extensions:` in `~/.omp/agent/config.yml` at the package directory
+works too; `package.json`'s `omp.extensions` field is the install contract.
 
 ## Configure
 
