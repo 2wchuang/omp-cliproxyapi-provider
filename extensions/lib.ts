@@ -9,7 +9,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { THINKING_EFFORTS, type ThinkingConfig } from "@oh-my-pi/pi-catalog";
+import { THINKING_EFFORTS, type ThinkingConfig } from "@oh-my-pi/pi-ai";
 
 /** Cost rate card omp accepts on a provider model. */
 export interface ProviderCost {
