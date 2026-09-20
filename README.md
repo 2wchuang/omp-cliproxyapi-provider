@@ -29,6 +29,35 @@ directory `omp plugin install` targets — note this is `~/.omp/plugins`, not un
 `agent/`). Pointing `extensions:` in `~/.omp/agent/config.yml` at the package directory
 works too; `package.json`'s `omp.extensions` field is the install contract.
 
+### Before you install: remove any existing `cliproxyapi` provider
+
+If `~/.omp/agent/models.yml` already defines a provider named `cliproxyapi`, that
+static entry **collides** with this plugin. Both claim the same provider id, so the
+plugin's registration replaces the static one at runtime — but the static catalog's
+models can survive on their original transport, leaving you with a mixed provider.
+Measured on a deployment whose `models.yml` used `api: openai-completions`:
+
+| Configuration | Registered `cliproxyapi` models |
+| --- | --- |
+| `models.yml` only | 41, all `openai-completions` |
+| plugin + `models.yml` | 35 on `openai-codex-responses` **plus 6 stale `openai-completions`** |
+| plugin, `models.yml` provider renamed | 35, all `openai-codex-responses` |
+
+The stale entries are exactly the models the plugin filters out as hidden, so they are
+both unusable and outside the plugin's Fast gating and catalog refresh.
+
+Remove the provider from `models.yml`, or rename it to keep it while avoiding the id:
+
+```yaml
+providers:
+  cliproxyapi-static:      # renamed: no longer collides with the plugin
+    baseUrl: https://cpa.example.com/v1
+    api: openai-completions
+```
+
+The plugin's own configuration is independent of `models.yml` — it reads
+`~/.omp/agent/cliproxyapi.json` and omp's credential store.
+
 ## Configure
 
 ### Interactive

@@ -74,7 +74,7 @@ afterEach(() => {
 
 describe("cpa-fast command", () => {
 	test("registers the cpa- prefixed name and not an unprefixed built-in collision", () => {
-		const { commands, ctx } = createHarness(dir);
+		const { commands } = createHarness(dir);
 		expect([...commands.keys()].sort()).toEqual(["cpa-continue", "cpa-fast", "cpa-refresh"]);
 	});
 
