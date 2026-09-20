@@ -181,13 +181,17 @@ function registerContinueCommand(pi: ExtensionAPI, deps: CommandDeps): void {
 				ctx.ui.notify("Usage: /cpa-continue", "error");
 				return;
 			}
-			if (agentPauseGate.paused) agentPauseGate.resume();
+			// Persist before releasing. A resumed gate that could not be written
+			// would silently re-freeze the next session, so a failed durable
+			// transition must abort rather than report success.
 			try {
 				saveConfigFile(deps.agentDir, { pause: false });
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				ctx.ui.notify(`Failed to save pause mode: ${message}`, "error");
+				return;
 			}
+			if (agentPauseGate.paused) agentPauseGate.resume();
 			publishStatus(ctx, deps);
 			ctx.ui.notify("Requests are continued.", "info");
 		},

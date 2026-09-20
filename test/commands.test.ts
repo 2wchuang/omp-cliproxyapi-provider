@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
@@ -12,6 +12,8 @@ interface CapturedCommand {
 }
 
 /** Minimal harness: capture registered commands and the UI calls handlers make. */
+import { agentPauseGate } from "@oh-my-pi/pi-agent-core";
+
 function createHarness(agentDir: string) {
 	const commands = new Map<string, CapturedCommand>();
 	const notifications: Array<{ message: string; type?: string }> = [];
@@ -148,6 +150,27 @@ describe("cpa-continue command", () => {
 
 		expect(readConfig(dir).pause).toBeUndefined();
 		expect(notifications.at(-1)).toEqual({ message: "Usage: /cpa-continue", type: "error" });
+	});
+
+	test("does not release the gate or claim success when the durable write fails", async () => {
+		// An agent dir that is a regular file cannot hold cliproxyapi.json, so
+		// saveConfigFile throws for real rather than via a stubbed module.
+		const blockedDir = join(dir, "blocked");
+		writeFileSync(blockedDir, "");
+		const { commands, notifications, ctx } = createHarness(blockedDir);
+
+		expect(agentPauseGate.pause()).toBe(true);
+		try {
+			await commands.get("cpa-continue")?.handler("", ctx);
+
+			// The gate must stay engaged: a resumed run whose pause flag was never
+			// persisted would silently re-freeze on the next session.
+			expect(agentPauseGate.paused).toBe(true);
+			expect(notifications.at(-1)?.type).toBe("error");
+			expect(notifications.some((n) => n.message === "Requests are continued.")).toBe(false);
+		} finally {
+			agentPauseGate.resume();
+		}
 	});
 });
 
