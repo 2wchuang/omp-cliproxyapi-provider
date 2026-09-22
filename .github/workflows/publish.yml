@@ -1,0 +1,109 @@
+name: Publish
+
+# Publishes to npm when a v* tag is pushed. Tagging is the release trigger, so
+# the version in package.json and the tag must agree — the verify job enforces
+# that before anything reaches the registry.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Pack and validate without publishing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+      - name: Resolve package version
+        id: version
+        run: echo "version=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
+
+      # A tag that disagrees with package.json would publish a version nobody
+      # asked for, and npm rejects a duplicate only after the tag is already out.
+      - name: Check tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$tag" != "$VERSION" ]; then
+            echo "::error::tag v$tag does not match package.json version $VERSION"
+            exit 1
+          fi
+          echo "tag v$tag matches package.json version $VERSION"
+
+      - name: Check version is unpublished
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if npm view "$(node -p 'require("./package.json").name')@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::$VERSION is already published to npm"
+            exit 1
+          fi
+          echo "$VERSION is not yet published"
+
+  publish:
+    name: Publish to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    # Trusted publishing (OIDC): npm exchanges this job's identity for a
+    # short-lived publish token, so no long-lived npm secret is stored here.
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      # Node (not Bun) drives the release: npm CLI >= 11.5.1 and Node >= 22.14
+      # are required for OIDC, and publishing needs neither node_modules nor the
+      # extension runtime.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Show toolchain
+        run: |
+          node --version
+          npm --version
+
+      - name: Pack and inspect
+        run: |
+          npm pack --dry-run
+
+      - name: Publish
+        if: github.event_name == 'push' || inputs.dry-run == false
+        run: npm publish
+
+      - name: Dry run (no publish)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry-run != false
+        run: echo "dry run requested; stopping before npm publish"
