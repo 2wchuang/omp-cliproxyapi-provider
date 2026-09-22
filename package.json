@@ -3,6 +3,14 @@
   "version": "1.0.2",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2wchuang/omp-cliproxyapi-provider.git"
+  },
+  "bugs": {
+    "url": "https://github.com/2wchuang/omp-cliproxyapi-provider/issues"
+  },
+  "homepage": "https://github.com/2wchuang/omp-cliproxyapi-provider#readme",
   "description": "CLIProxyAPI dynamic model provider for oh-my-pi (omp): catalog-driven provider registration, Fast (priority) service tier, request pausing, and TPS footer.",
   "keywords": [
     "omp-package",
