@@ -7,6 +7,8 @@ Port of [`@router-for-me/pi-cliproxyapi-provider`](https://github.com/router-for
 deployment serves, registers them as a provider, and adds a Fast-mode priority
 tier, request pausing, catalog refresh, and an elapsed/TPS footer.
 
+> 中文文档: [README.zh-CN.md](./README.zh-CN.md)
+
 ## Features
 
 | Feature | Command / behavior |

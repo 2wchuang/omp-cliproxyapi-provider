@@ -25,6 +25,7 @@
     "cliproxyapi.example.json",
     "extensions",
     "README.md",
+    "README.zh-CN.md",
     "LICENSE"
   ],
   "publishConfig": {
